@@ -8,7 +8,7 @@ class Config:
         self.secrets_client = boto3.client('secretsmanager', region_name=os.getenv('AWS_REGION', 'us-east-1'))
         
         # Load secrets once
-        self.secrets = self._fetch_secrets(os.getenv('AWS_SECRET_NAME'))
+        self.secrets = self._fetch_secrets("PortfolioChatbotSecrets")
 
     def _fetch_secrets(self, secret_name):
         """
