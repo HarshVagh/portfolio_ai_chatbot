@@ -1,1 +1,69 @@
 /chatbot_api/.env
+secrets.json
+
+# Byte-compiled Python files
+*.pyc
+*.pyo
+__pycache__/
+*.pyd
+
+# Virtual environment
+venv/
+.env
+*.env
+*.venv
+
+# Flask-specific
+instance/
+*.db
+*.sqlite3
+
+# Log files
+*.log
+logs/
+*.out
+
+# Python cache
+*.cache
+
+# Node.js (React)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build files
+build/
+dist/
+.eslintcache
+.parcel-cache
+.cache/
+coverage/
+
+# IDE and editor settings
+.idea/
+.vscode/
+*.swp
+*.swo
+*.swn
+*.swd
+*.sws
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Tests coverage reports
+coverage/
+*.cover
+*.coverage
+*.egg
+*.egg-info/
+*.pytest_cache/
+
+# Miscellaneous
+*.bak
+*.tmp
+*.~undo-tree~
+*.orig

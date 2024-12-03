@@ -1,0 +1,648 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Cloud IAC setup for Portfolio Chatbot Project.
+
+Parameters:
+  SecretContent:
+    Type: String
+    Description: JSON content for the Secrets Manager secret
+
+Resources:
+  # VPC
+  PortfolioVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: PortfolioChatbotVPC
+
+  # Internet Gateway
+  PortfolioInternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: PortfolioChatbotIGW
+
+  AttachInternetGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref PortfolioVPC
+      InternetGatewayId: !Ref PortfolioInternetGateway
+
+  # Elastic IP for NAT Gateway
+  NATElasticIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: PortfolioChatbotNATElasticIP
+
+  # NAT Gateway
+  PortfolioNATGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NATElasticIP.AllocationId
+      SubnetId: !Ref PublicSubnet1
+      Tags:
+        - Key: Name
+          Value: PortfolioChatbotNATGateway
+
+  # Public Subnets
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref PortfolioVPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: PortfolioChatbotPublicSubnet1
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref PortfolioVPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: PortfolioChatbotPublicSubnet2
+
+  PublicSubnet3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref PortfolioVPC
+      CidrBlock: 10.0.3.0/24
+      AvailabilityZone: !Select [2, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: PortfolioChatbotPublicSubnet3
+
+  # Private Subnets
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref PortfolioVPC
+      CidrBlock: 10.0.4.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: PortfolioChatbotPrivateSubnet1
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref PortfolioVPC
+      CidrBlock: 10.0.5.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: PortfolioChatbotPrivateSubnet2
+
+  PrivateSubnet3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref PortfolioVPC
+      CidrBlock: 10.0.6.0/24
+      AvailabilityZone: !Select [2, !GetAZs '']
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: PortfolioChatbotPrivateSubnet3
+
+  # Route Tables
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref PortfolioVPC
+      Tags:
+        - Key: Name
+          Value: PortfolioChatbotPublicRouteTable
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref PortfolioVPC
+      Tags:
+        - Key: Name
+          Value: PortfolioChatbotPrivateRouteTable
+
+  # Routes for Public Route Table
+  PublicRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref PortfolioInternetGateway
+
+  # Routes for Private Route Table
+  PrivateRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref PortfolioNATGateway
+
+  # Subnet Associations
+  PublicSubnetRouteTableAssociation1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnetRouteTableAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet2
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnetRouteTableAssociation3:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet3
+      RouteTableId: !Ref PublicRouteTable
+
+  PrivateSubnetRouteTableAssociation1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet1
+      RouteTableId: !Ref PrivateRouteTable
+
+  PrivateSubnetRouteTableAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet2
+      RouteTableId: !Ref PrivateRouteTable
+
+  PrivateSubnetRouteTableAssociation3:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet3
+      RouteTableId: !Ref PrivateRouteTable
+
+  ##########################################################################
+
+  # Application Load Balancer
+  PortfolioALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: PortfolioChatbotALB
+      Scheme: internet-facing
+      Subnets:
+        - !Ref PublicSubnet1
+        - !Ref PublicSubnet2
+        - !Ref PublicSubnet3
+      SecurityGroups:
+        - !Ref ALBSecurityGroup
+      Type: application
+      Tags:
+        - Key: Name
+          Value: PortfolioChatbotALB
+
+  # ALB Security Group
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow HTTP access to ALB
+      VpcId: !Ref PortfolioVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: 0
+          ToPort: 0
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: PortfolioChatbotALBSecurityGroup
+
+  # Frontend Target Group
+  FrontendTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: PortfolioFrontendTG
+      Port: 80
+      Protocol: HTTP
+      TargetType: ip
+      VpcId: !Ref PortfolioVPC
+      HealthCheckPath: /
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 5
+      UnhealthyThresholdCount: 2
+      Matcher:
+        HttpCode: "200-299"
+      Tags:
+        - Key: Name
+          Value: PortfolioFrontendTG
+
+  # Backend Target Group
+  BackendTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: PortfolioBackendTG
+      Port: 5000
+      Protocol: HTTP
+      TargetType: ip
+      VpcId: !Ref PortfolioVPC
+      HealthCheckPath: /api/health
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 5
+      UnhealthyThresholdCount: 2
+      Matcher:
+        HttpCode: "200-299"
+      Tags:
+        - Key: Name
+          Value: PortfolioBackendTG
+
+  # HTTP Listener on Port 80
+  ALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref PortfolioALB
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref FrontendTargetGroup
+
+  # Listener Rule for Backend (/api/*)
+  BackendListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref ALBListener
+      Priority: 1
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - /api/*
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref BackendTargetGroup
+
+  ##########################################################################
+
+  PortfolioSecrets:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: PortfolioChatbotSecrets
+      Description: Secrets for Portfolio Chatbot Project
+      SecretString: !Ref SecretContent
+
+  ##########################################################################
+
+  # ECS Cluster
+  PortfolioECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: PortfolioChatbotCluster
+      Tags:
+        - Key: Name
+          Value: PortfolioChatbotCluster
+
+  # Security Group for Fargate Tasks
+  FargateSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for Fargate tasks
+      VpcId: !Ref PortfolioVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          SourceSecurityGroupId: !Ref ALBSecurityGroup
+        - IpProtocol: tcp
+          FromPort: 5000
+          ToPort: 5000
+          SourceSecurityGroupId: !Ref ALBSecurityGroup
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: 0
+          ToPort: 0
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: PortfolioChatbotFargateSG
+
+  # Frontend Task Definition
+  FrontendTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: PortfolioFrontendTask
+      Cpu: 256
+      Memory: 512
+      NetworkMode: awsvpc
+      ExecutionRoleArn: arn:aws:iam::533267225604:role/LabRole
+      TaskRoleArn: arn:aws:iam::533267225604:role/LabRole  # Added TaskRoleArn
+      ContainerDefinitions:
+        - Name: react-frontend
+          Image: 533267225604.dkr.ecr.us-east-1.amazonaws.com/chatbot-frontend
+          PortMappings:
+            - ContainerPort: 80
+              Protocol: tcp
+          Essential: true
+          Environment:
+            - Name: REACT_APP_API_URL
+              Value: !Sub "http://${PortfolioALB.DNSName}"
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: /ecs/frontend
+              awslogs-region: !Ref "AWS::Region"
+              awslogs-stream-prefix: frontend
+      RequiresCompatibilities:
+        - FARGATE
+
+  # Backend Task Definition
+  BackendTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: PortfolioBackendTask
+      Cpu: 256
+      Memory: 512
+      NetworkMode: awsvpc
+      ExecutionRoleArn: arn:aws:iam::533267225604:role/LabRole
+      TaskRoleArn: arn:aws:iam::533267225604:role/LabRole  # Added TaskRoleArn
+      ContainerDefinitions:
+        - Name: flask-backend
+          Image: 533267225604.dkr.ecr.us-east-1.amazonaws.com/chatbot-backend
+          PortMappings:
+            - ContainerPort: 5000
+              Protocol: tcp
+          Essential: true
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: /ecs/backend
+              awslogs-region: !Ref "AWS::Region"
+              awslogs-stream-prefix: backend
+      RequiresCompatibilities:
+        - FARGATE
+
+  # Backend Log Group
+  BackendLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /ecs/backend
+      RetentionInDays: 30
+
+  # Frontend Log Group
+  FrontendLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /ecs/frontend
+      RetentionInDays: 30
+
+  # Frontend Service
+  FrontendService:
+    Type: AWS::ECS::Service
+    DependsOn:
+      - ALBListener
+      - BackendListenerRule
+    Properties:
+      Cluster: !Ref PortfolioECSCluster
+      ServiceName: PortfolioFrontendService
+      TaskDefinition: !Ref FrontendTaskDefinition
+      LaunchType: FARGATE
+      DesiredCount: 1
+      LoadBalancers:
+        - ContainerName: react-frontend
+          ContainerPort: 80
+          TargetGroupArn: !Ref FrontendTargetGroup
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups:
+            - !Ref FargateSecurityGroup
+          Subnets:
+            - !Ref PrivateSubnet1
+            - !Ref PrivateSubnet2
+            - !Ref PrivateSubnet3
+
+  # Backend Service
+  BackendService:
+    Type: AWS::ECS::Service
+    DependsOn:
+      - BackendListenerRule
+    Properties:
+      Cluster: !Ref PortfolioECSCluster
+      ServiceName: PortfolioBackendService
+      TaskDefinition: !Ref BackendTaskDefinition
+      LaunchType: FARGATE
+      DesiredCount: 1
+      LoadBalancers:
+        - ContainerName: flask-backend
+          ContainerPort: 5000
+          TargetGroupArn: !Ref BackendTargetGroup
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups:
+            - !Ref FargateSecurityGroup
+          Subnets:
+            - !Ref PrivateSubnet1
+            - !Ref PrivateSubnet2
+            - !Ref PrivateSubnet3
+
+  ##########################################################################
+
+  # Users Table
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: users
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: email
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: email-index
+          KeySchema:
+            - AttributeName: email
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      BillingMode: PAY_PER_REQUEST
+      Tags:
+        - Key: Name
+          Value: PortfolioChatbotUsersTable
+
+  # Chats Table
+  ChatsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: chats
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: user_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: user_id-index
+          KeySchema:
+            - AttributeName: user_id
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      BillingMode: PAY_PER_REQUEST
+      Tags:
+        - Key: Name
+          Value: PortfolioChatbotChatsTable
+
+  # Messages Table
+  MessagesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: messages
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: chat_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: chat_id-index
+          KeySchema:
+            - AttributeName: chat_id
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      BillingMode: PAY_PER_REQUEST
+      Tags:
+        - Key: Name
+          Value: PortfolioChatbotMessagesTable
+
+  ##########################################################################
+
+  # Input Bucket
+  PortfolioInputBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: portfolio-input-bucket
+      AccessControl: Private
+      Tags:
+        - Key: Name
+          Value: PortfolioChatbotInputBucket
+      VersioningConfiguration:
+        Status: Enabled
+
+  # Output Bucket
+  PortfolioOutputBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: portfolio-output-bucket
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        IgnorePublicAcls: false
+        BlockPublicPolicy: false
+        RestrictPublicBuckets: false
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: ['*']
+            AllowedMethods: ['GET', 'PUT', 'POST', 'DELETE', 'HEAD']
+            AllowedOrigins: ['*']
+            MaxAge: 3000
+      VersioningConfiguration:
+        Status: Enabled
+      Tags:
+        - Key: Name
+          Value: PortfolioChatbotOutputBucket
+
+  # Output Bucket Policy for Public Access (Static Website Hosting)
+  PortfolioOutputBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref PortfolioOutputBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: PublicReadGetObject
+            Effect: Allow
+            Principal: "*"
+            Action: "s3:GetObject"
+            Resource: !Sub "${PortfolioOutputBucket.Arn}/*"
+
+  ##########################################################################
+
+Outputs:
+  VPCId:
+    Description: VPC ID
+    Value: !Ref PortfolioVPC
+
+  PublicSubnets:
+    Description: Public Subnet IDs
+    Value: !Join [",", [!Ref PublicSubnet1, !Ref PublicSubnet2, !Ref PublicSubnet3]]
+
+  PrivateSubnets:
+    Description: Private Subnet IDs
+    Value: !Join [",", [!Ref PrivateSubnet1, !Ref PrivateSubnet2, !Ref PrivateSubnet3]]
+
+  ALBEndpoint:
+    Description: ALB DNS name
+    Value: !GetAtt PortfolioALB.DNSName
+
+  FrontendTargetGroupArn:
+    Description: ARN of the Frontend Target Group
+    Value: !Ref FrontendTargetGroup
+
+  BackendTargetGroupArn:
+    Description: ARN of the Backend Target Group
+    Value: !Ref BackendTargetGroup
+
+  ECSClusterName:
+    Description: ECS Cluster Name
+    Value: !Ref PortfolioECSCluster
+
+  FrontendServiceName:
+    Description: Frontend Service Name
+    Value: !Ref FrontendService
+
+  BackendServiceName:
+    Description: Backend Service Name
+    Value: !Ref BackendService
+
+  UsersTableName:
+    Description: Name of the Users Table
+    Value: !Ref UsersTable
+
+  ChatsTableName:
+    Description: Name of the Chats Table
+    Value: !Ref ChatsTable
+
+  MessagesTableName:
+    Description: Name of the Messages Table
+    Value: !Ref MessagesTable
+
+  InputBucketName:
+    Description: Name of the Input Bucket
+    Value: !Ref PortfolioInputBucket
+
+  OutputBucketName:
+    Description: Name of the Output Bucket
+    Value: !Ref PortfolioOutputBucket
+
+  OutputBucketWebsiteURL:
+    Description: Website URL for the Output Bucket
+    Value: !GetAtt PortfolioOutputBucket.WebsiteURL
