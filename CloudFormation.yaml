@@ -5,6 +5,11 @@ Parameters:
   SecretContent:
     Type: String
     Description: JSON content for the Secrets Manager secret
+  NotificationEmail:
+    Type: String
+    Description: Email address to receive SNS notifications
+    AllowedPattern: "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
+    ConstraintDescription: "Must be a valid email address."
 
 Resources:
   # VPC
@@ -31,25 +36,6 @@ Resources:
     Properties:
       VpcId: !Ref PortfolioVPC
       InternetGatewayId: !Ref PortfolioInternetGateway
-
-  # Elastic IP for NAT Gateway
-  NATElasticIP:
-    Type: AWS::EC2::EIP
-    Properties:
-      Domain: vpc
-      Tags:
-        - Key: Name
-          Value: PortfolioChatbotNATElasticIP
-
-  # NAT Gateway
-  PortfolioNATGateway:
-    Type: AWS::EC2::NatGateway
-    Properties:
-      AllocationId: !GetAtt NATElasticIP.AllocationId
-      SubnetId: !Ref PublicSubnet1
-      Tags:
-        - Key: Name
-          Value: PortfolioChatbotNATGateway
 
   # Public Subnets
   PublicSubnet1:
@@ -119,75 +105,187 @@ Resources:
         - Key: Name
           Value: PortfolioChatbotPrivateSubnet3
 
+  # NAT Gateways and Elastic IPs
+  NATElasticIP1:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: PortfolioChatbotNATElasticIP1
+
+  NATElasticIP2:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: PortfolioChatbotNATElasticIP2
+
+  NATElasticIP3:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: PortfolioChatbotNATElasticIP3
+
+  PortfolioNATGateway1:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NATElasticIP1.AllocationId
+      SubnetId: !Ref PublicSubnet1
+      Tags:
+        - Key: Name
+          Value: PortfolioChatbotNATGateway1
+
+  PortfolioNATGateway2:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NATElasticIP2.AllocationId
+      SubnetId: !Ref PublicSubnet2
+      Tags:
+        - Key: Name
+          Value: PortfolioChatbotNATGateway2
+
+  PortfolioNATGateway3:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NATElasticIP3.AllocationId
+      SubnetId: !Ref PublicSubnet3
+      Tags:
+        - Key: Name
+          Value: PortfolioChatbotNATGateway3
+
   # Route Tables
-  PublicRouteTable:
+  PublicRouteTable1:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref PortfolioVPC
       Tags:
         - Key: Name
-          Value: PortfolioChatbotPublicRouteTable
+          Value: PortfolioChatbotPublicRouteTable1
 
-  PrivateRouteTable:
+  PublicRouteTable2:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref PortfolioVPC
       Tags:
         - Key: Name
-          Value: PortfolioChatbotPrivateRouteTable
+          Value: PortfolioChatbotPublicRouteTable2
 
-  # Routes for Public Route Table
-  PublicRoute:
+  PublicRouteTable3:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref PortfolioVPC
+      Tags:
+        - Key: Name
+          Value: PortfolioChatbotPublicRouteTable3
+
+  PrivateRouteTable1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref PortfolioVPC
+      Tags:
+        - Key: Name
+          Value: PortfolioChatbotPrivateRouteTable1
+
+  PrivateRouteTable2:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref PortfolioVPC
+      Tags:
+        - Key: Name
+          Value: PortfolioChatbotPrivateRouteTable2
+
+  PrivateRouteTable3:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref PortfolioVPC
+      Tags:
+        - Key: Name
+          Value: PortfolioChatbotPrivateRouteTable3
+
+  # Routes for Public Route Tables
+  PublicRoute1:
     Type: AWS::EC2::Route
     Properties:
-      RouteTableId: !Ref PublicRouteTable
+      RouteTableId: !Ref PublicRouteTable1
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref PortfolioInternetGateway
 
-  # Routes for Private Route Table
-  PrivateRoute:
+  PublicRoute2:
     Type: AWS::EC2::Route
     Properties:
-      RouteTableId: !Ref PrivateRouteTable
+      RouteTableId: !Ref PublicRouteTable2
       DestinationCidrBlock: 0.0.0.0/0
-      NatGatewayId: !Ref PortfolioNATGateway
+      GatewayId: !Ref PortfolioInternetGateway
+
+  PublicRoute3:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PublicRouteTable3
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref PortfolioInternetGateway
+
+  # Routes for Private Route Tables
+  PrivateRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable1
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref PortfolioNATGateway1
+
+  PrivateRoute2:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable2
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref PortfolioNATGateway2
+
+  PrivateRoute3:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable3
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref PortfolioNATGateway3
 
   # Subnet Associations
   PublicSubnetRouteTableAssociation1:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref PublicSubnet1
-      RouteTableId: !Ref PublicRouteTable
+      RouteTableId: !Ref PublicRouteTable1
 
   PublicSubnetRouteTableAssociation2:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref PublicSubnet2
-      RouteTableId: !Ref PublicRouteTable
+      RouteTableId: !Ref PublicRouteTable2
 
   PublicSubnetRouteTableAssociation3:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref PublicSubnet3
-      RouteTableId: !Ref PublicRouteTable
+      RouteTableId: !Ref PublicRouteTable3
 
   PrivateSubnetRouteTableAssociation1:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref PrivateSubnet1
-      RouteTableId: !Ref PrivateRouteTable
+      RouteTableId: !Ref PrivateRouteTable1
 
   PrivateSubnetRouteTableAssociation2:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref PrivateSubnet2
-      RouteTableId: !Ref PrivateRouteTable
+      RouteTableId: !Ref PrivateRouteTable2
 
   PrivateSubnetRouteTableAssociation3:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref PrivateSubnet3
-      RouteTableId: !Ref PrivateRouteTable
+      RouteTableId: !Ref PrivateRouteTable3
 
   ##########################################################################
 
@@ -346,7 +444,7 @@ Resources:
       Memory: 512
       NetworkMode: awsvpc
       ExecutionRoleArn: arn:aws:iam::533267225604:role/LabRole
-      TaskRoleArn: arn:aws:iam::533267225604:role/LabRole  # Added TaskRoleArn
+      TaskRoleArn: arn:aws:iam::533267225604:role/LabRole
       ContainerDefinitions:
         - Name: react-frontend
           Image: 533267225604.dkr.ecr.us-east-1.amazonaws.com/chatbot-frontend
@@ -356,7 +454,7 @@ Resources:
           Essential: true
           Environment:
             - Name: REACT_APP_API_URL
-              Value: !Sub "http://${PortfolioALB.DNSName}"
+              Value: !Sub "http://${PortfolioALB.DNSName}/api/"
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -375,9 +473,9 @@ Resources:
       Memory: 512
       NetworkMode: awsvpc
       ExecutionRoleArn: arn:aws:iam::533267225604:role/LabRole
-      TaskRoleArn: arn:aws:iam::533267225604:role/LabRole  # Added TaskRoleArn
+      TaskRoleArn: arn:aws:iam::533267225604:role/LabRole
       ContainerDefinitions:
-        - Name: flask-backend
+        - Name: node-backend
           Image: 533267225604.dkr.ecr.us-east-1.amazonaws.com/chatbot-backend
           PortMappings:
             - ContainerPort: 5000
@@ -431,6 +529,9 @@ Resources:
             - !Ref PrivateSubnet1
             - !Ref PrivateSubnet2
             - !Ref PrivateSubnet3
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 50
 
   # Backend Service
   BackendService:
@@ -444,7 +545,7 @@ Resources:
       LaunchType: FARGATE
       DesiredCount: 1
       LoadBalancers:
-        - ContainerName: flask-backend
+        - ContainerName: node-backend
           ContainerPort: 5000
           TargetGroupArn: !Ref BackendTargetGroup
       NetworkConfiguration:
@@ -456,6 +557,154 @@ Resources:
             - !Ref PrivateSubnet1
             - !Ref PrivateSubnet2
             - !Ref PrivateSubnet3
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 50
+
+  # Frontend Scalable Target
+  FrontendScalableTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    DependsOn: FrontendService
+    Properties:
+      MaxCapacity: 10
+      MinCapacity: 1
+      ResourceId: !Sub "service/${PortfolioECSCluster}/PortfolioFrontendService"
+      RoleARN: arn:aws:iam::533267225604:role/LabRole
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+
+  # Backend Scalable Target
+  BackendScalableTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    DependsOn: BackendService
+    Properties:
+      MaxCapacity: 10
+      MinCapacity: 1
+      ResourceId: !Sub "service/${PortfolioECSCluster}/PortfolioBackendService"
+      RoleARN: arn:aws:iam::533267225604:role/LabRole
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+
+  # Frontend Scaling Policy
+  FrontendScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: FrontendCPUScalingPolicy
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref FrontendScalableTarget
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageCPUUtilization
+        TargetValue: 50.0
+        ScaleInCooldown: 60
+        ScaleOutCooldown: 60
+
+  # Backend Scaling Policy
+  BackendScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: BackendCPUScalingPolicy
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref BackendScalableTarget
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageCPUUtilization
+        TargetValue: 50.0
+        ScaleInCooldown: 60
+        ScaleOutCooldown: 60
+
+  ##########################################################################
+
+  # CloudWatch Alarms for Frontend Service
+  FrontendCPUAlarmHigh:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: FrontendHighCPUUtilization
+      AlarmDescription: Alarm when CPU exceeds 70%
+      Namespace: AWS/ECS
+      MetricName: CPUUtilization
+      Dimensions:
+        - Name: ClusterName
+          Value: !Ref PortfolioECSCluster
+        - Name: ServiceName
+          Value: !Ref FrontendService
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 70
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+        - !Ref AlarmNotificationTopic
+
+  FrontendMemoryAlarmHigh:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: FrontendHighMemoryUtilization
+      AlarmDescription: Alarm when Memory exceeds 80%
+      Namespace: AWS/ECS
+      MetricName: MemoryUtilization
+      Dimensions:
+        - Name: ClusterName
+          Value: !Ref PortfolioECSCluster
+        - Name: ServiceName
+          Value: !Ref FrontendService
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 80
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+        - !Ref AlarmNotificationTopic
+
+  # CloudWatch Alarms for Backend Service
+  BackendCPUAlarmHigh:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: BackendHighCPUUtilization
+      AlarmDescription: Alarm when CPU exceeds 70%
+      Namespace: AWS/ECS
+      MetricName: CPUUtilization
+      Dimensions:
+        - Name: ClusterName
+          Value: !Ref PortfolioECSCluster
+        - Name: ServiceName
+          Value: !Ref BackendService
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 70
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+        - !Ref AlarmNotificationTopic
+
+  BackendMemoryAlarmHigh:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: BackendHighMemoryUtilization
+      AlarmDescription: Alarm when Memory exceeds 80%
+      Namespace: AWS/ECS
+      MetricName: MemoryUtilization
+      Dimensions:
+        - Name: ClusterName
+          Value: !Ref PortfolioECSCluster
+        - Name: ServiceName
+          Value: !Ref BackendService
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 80
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+        - !Ref AlarmNotificationTopic
+
+  # SNS Topic for Alarm Notifications
+  AlarmNotificationTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: PortfolioAlarmNotificationTopic
+      Subscription:
+        - Endpoint: !Ref NotificationEmail
+          Protocol: email
 
   ##########################################################################
 
@@ -542,11 +791,25 @@ Resources:
     Properties:
       BucketName: portfolio-input-bucket
       AccessControl: Private
+      VersioningConfiguration:
+        Status: Enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Status: Enabled
+            ExpirationInDays: 365
+            NoncurrentVersionExpirationInDays: 365
+            Transitions:
+              - TransitionInDays: 30
+                StorageClass: STANDARD_IA
+              - TransitionInDays: 60
+                StorageClass: GLACIER
       Tags:
         - Key: Name
           Value: PortfolioChatbotInputBucket
-      VersioningConfiguration:
-        Status: Enabled
 
   # Output Bucket
   PortfolioOutputBucket:
@@ -566,6 +829,16 @@ Resources:
             MaxAge: 3000
       VersioningConfiguration:
         Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Status: Enabled
+            ExpirationInDays: 365
+            NoncurrentVersionExpirationInDays: 365
+            Transitions:
+              - TransitionInDays: 30
+                StorageClass: STANDARD_IA
+              - TransitionInDays: 60
+                StorageClass: GLACIER
       Tags:
         - Key: Name
           Value: PortfolioChatbotOutputBucket
